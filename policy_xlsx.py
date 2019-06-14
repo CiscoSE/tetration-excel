@@ -179,6 +179,8 @@ def main():
                 pols = '  '.join("%s=%r" % (key,', '.join(val)) for (key,val) in pols.iteritems())
                 worksheet.write_row(i,0,[policy["consumer_filter_name"],policy["provider_filter_name"],pols])
                 i+=1
+        
+        workbook.close()
 
 if __name__ == '__main__':
     main()
