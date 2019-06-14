@@ -166,18 +166,29 @@ def main():
             for policy in policies:
                 pols = {}
                 for rule in policy['l4_params']:
-                    if rule['port'][0] == rule['port'][1]:
-                        port = str(rule['port'][0])
+                    if 'port' in rule:
+                        if rule['port'][0] == rule['port'][1]:
+                            port = str(rule['port'][0])
+                        else:
+                            port = str(rule['port'][0]) + '-' + str(rule['port'][1])
                     else:
-                        port = str(rule['port'][0]) + '-' + str(rule['port'][1])
+                        port = None
 
-                    if protocols[str(rule['proto'])]['Keyword'] in pols.keys():
+                    if port == None:
+                        pols[protocols[str(rule['proto'])]['Keyword']] = []
+                    elif protocols[str(rule['proto'])]['Keyword'] in pols.keys():
                         pols[protocols[str(rule['proto'])]['Keyword']].append(port)
                     else:
                         pols[protocols[str(rule['proto'])]['Keyword']] = [port]
 
-                pols = '  '.join("%s=%r" % (key,', '.join(val)) for (key,val) in pols.iteritems())
-                worksheet.write_row(i,0,[policy["consumer_filter_name"],policy["provider_filter_name"],pols])
+                policy_list = []
+                for key, val in pols.iteritems():
+                    print(key,val)
+                    if len(val)>0:
+                        policy_list.append('{}={}'.format(key,', '.join(val)))
+                    else:
+                        policy_list.append(key)
+                worksheet.write_row(i,0,[policy["consumer_filter_name"],policy["provider_filter_name"],'; '.join(policy_list)])
                 i+=1
         
         workbook.close()
