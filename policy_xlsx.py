@@ -22,13 +22,14 @@ __license__ = "Cisco Sample Code License, Version 1.0"
 import json
 import argparse
 import xlsxwriter
+from builtins import input
 from tetpyclient import RestClient
 import requests.packages.urllib3
 from terminaltables import AsciiTable
 import csv
 
-API_ENDPOINT="{{TETRATION URL}}"
-API_CREDS="{{PATH TO TETRATION API CREDS JSON}}"
+API_ENDPOINT="https://%TET_URL%"
+API_CREDS="/%PATH_TO%/api_credentials.json"
 
 def selectTetrationApps(endpoint,credentials):
 
@@ -47,7 +48,7 @@ def selectTetrationApps(endpoint,credentials):
     for i,app in enumerate(resp.json()):
         app_table.append([i+1,app['name'],app['author'],app['primary']])
     print(AsciiTable(app_table).table)
-    choice = raw_input('\nSelect Tetration App: ')
+    choice = input('\nSelect Tetration App: ')
 
     choice = choice.split(',')
     appIDs = []
@@ -72,7 +73,7 @@ def filterToString(invfilter):
         operator = ' '+invfilter['type']+' '
         return '('+operator.join(query)+')'
     else:
-        return invfilter['field']+ ' '+ invfilter['type'] + ' '+ str(invfilter['value'])
+        return invfilter['field']+ ' '+ invfilter['type'] + ' '+ str(invfilter['value'])    
 
 def main():
     """
@@ -88,7 +89,7 @@ def main():
     args = parser.parse_args()
     apps = []
     if args.config is None:
-        print '%% No configuration file given - connecting directly to Tetration'
+        print('%% No configuration file given - connecting directly to Tetration')
         try:
             restclient = RestClient(API_ENDPOINT,credentials_file=API_CREDS,verify=False)
             appIDs = selectTetrationApps(endpoint=API_ENDPOINT,credentials=API_CREDS)
@@ -103,10 +104,10 @@ def main():
             with open(args.config) as config_file:
                 apps.append(json.load(config_file))
         except IOError:
-            print '%% Could not load configuration file'
+            print('%% Could not load configuration file')
             return
         except ValueError:
-            print 'Could not load improperly formatted configuration file'
+            print('Could not load improperly formatted configuration file')
             return
 
     # Load in the IANA Protocols
@@ -117,14 +118,14 @@ def main():
             for row in reader:
                 protocols[row['Decimal']]=row
     except IOError:
-        print '%% Could not load protocols file'
+        print('%% Could not load protocols file')
         return
     except ValueError:
-        print 'Could not load improperly formatted protocols file'
+        print('Could not load improperly formatted protocols file')
         return
 
     for app in apps:
-        workbook = xlsxwriter.Workbook('./'+app['name']+'.xlsx')
+        workbook = xlsxwriter.Workbook('./'+app['name'].replace('/','-')+'.xlsx')
         bold = workbook.add_format({'bold': True})
 
         if 'clusters' in app.keys():
@@ -175,19 +176,23 @@ def main():
                         port = None
 
                     if port == None:
-                        pols[protocols[str(rule['proto'])]['Keyword']] = []
+                        try:
+                            pols[protocols[str(rule['proto'])]['Keyword']] = []
+                        except:
+                            pols['PROTO-'+str(rule['proto'])]=[]
                     elif protocols[str(rule['proto'])]['Keyword'] in pols.keys():
                         pols[protocols[str(rule['proto'])]['Keyword']].append(port)
                     else:
                         pols[protocols[str(rule['proto'])]['Keyword']] = [port]
 
                 policy_list = []
-                for key, val in pols.iteritems():
-                    print(key,val)
+                for key, val in pols.items():
+                    #print(key,val)
                     if len(val)>0:
                         policy_list.append('{}={}'.format(key,', '.join(val)))
                     else:
                         policy_list.append(key)
+                        
                 worksheet.write_row(i,0,[policy["consumer_filter_name"],policy["provider_filter_name"],'; '.join(policy_list)])
                 i+=1
         
